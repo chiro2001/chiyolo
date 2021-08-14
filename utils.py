@@ -321,6 +321,7 @@ def preprocess_true_boxes(true_boxes, input_shape, anchors, num_classes):
     y_true: list of array, shape like yolo_outputs, xywh are reletive value
 
     '''
+    # print('true_boxes', true_boxes[..., 4])
     assert (true_boxes[..., 4] < num_classes).all(), 'class id must be less than num_classes'
     true_boxes = np.array(true_boxes, dtype='float32')
     input_shape = np.array(input_shape, dtype='int32')

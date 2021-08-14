@@ -478,6 +478,11 @@ def yolo_loss(device, yolo_outputs, y_true, anchors, num_classes, ignore_thresh=
 def main():
     device = 'cuda' if torch.cuda.is_available() else "cpu"
     model = Darknet(device)
+    try:
+        model = torch.load("v3.model")
+    except FileNotFoundError:
+        print("No model found.")
+
     # x = torch.randn(4, 3, 416, 832)
     # res = model(x)
     # print(res.shape)
@@ -523,29 +528,44 @@ def main():
     val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
     model = model.to(device)
-    epochs = 10
-    optimizer = optim.Adadelta(model.parameters(), lr=1.0)
-    for epoch in range(epochs):
-        running_loss = 0.0
-        for i, (image, labels) in enumerate(train_loader):
-            image = image.to(device)
-            labels = labels.to(device)
+    # epochs = 10
+    # epochs = 1
+    epochs = 100
+    batch = 2
+    # optimizer = optim.Adadelta(model.parameters(), lr=1.0)
+    optimizer = optim.Adadelta(model.parameters(), lr=1e-4)
+    try:
+        for epoch in range(epochs):
+            running_loss = 0.0
+            print('epoch', epoch)
+            for i, (image, labels) in enumerate(train_loader):
+                image = image.to(device)
+                labels = labels.to(device)
 
-            optimizer.zero_grad()
-            yolo_outputs = model(image)
-            loss = yolo_loss(device, yolo_outputs, labels, anchors, num_classes, ignore_thresh=0.5)
-            loss.backward()
-            grad_val = 0.0
-            for name, parms in model.named_parameters():
-                #print('-->name:', name, '-->grad_requirs:', parms.requires_grad, '--weight', torch.mean(parms.data),
-                #      ' -->grad_value:', torch.mean(parms.grad))
-                grad_val += torch.mean(parms.grad).item()
-            print(grad_val)
-            optimizer.step()
-            running_loss += loss.item()
-            if i % 100 == 99:
-                print("epoch_{},iter_{}, loss_{}".format(epoch, i, running_loss / 100))
-                running_loss = 0.0
+                optimizer.zero_grad()
+                yolo_outputs = model(image)
+                try:
+                    loss = yolo_loss(device, yolo_outputs, labels, anchors, num_classes, ignore_thresh=0.5)
+                except IndexError as e:
+                    print("Error:", e)
+                    continue
+                loss.backward()
+                grad_val = 0.0
+                for name, parms in model.named_parameters():
+                    #print('-->name:', name, '-->grad_requirs:', parms.requires_grad, '--weight', torch.mean(parms.data),
+                    #      ' -->grad_value:', torch.mean(parms.grad))
+                    grad_val += torch.mean(parms.grad).item()
+                print(grad_val)
+                optimizer.step()
+                running_loss += loss.item()
+                if i % batch == (batch - 1):
+                    print("epoch_{},iter_{}, loss_{}".format(epoch, i, running_loss / batch))
+                    running_loss = 0.0
+            # torch.save(model, "v3.model")
+    except KeyboardInterrupt:
+        print("Saving and exiting...")
+        torch.save(model, "v3.model")
+        exit(0)
 
 
 if __name__=='__main__':
