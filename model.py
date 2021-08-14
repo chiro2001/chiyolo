@@ -120,19 +120,20 @@ class yolo_body(nn.Module):
 
     def forward(self, yolo_layers):
         tiny = yolo_layers['tiny']
-        small = yolo_layers['small']
-        medium = yolo_layers['medium']
-        big = yolo_layers['big']
+        # small = yolo_layers['small']
+        # medium = yolo_layers['medium']
+        # big = yolo_layers['big']
         base = 6
         tiny = Conv2D_BN_Leaky(tiny.shape[1], base*32, (1, 1))(tiny)
-        small = Conv2D_BN_Leaky(small.shape[1], base*32, (1, 1))(small)
-        medium = Conv2D_BN_Leaky(medium.shape[1], base*32, (1, 1))(medium)
-        big = Conv2D_BN_Leaky(big.shape[1], base*32, (1, 1))(big)
+        # small = Conv2D_BN_Leaky(small.shape[1], base*32, (1, 1))(small)
+        # medium = Conv2D_BN_Leaky(medium.shape[1], base*32, (1, 1))(medium)
+        # big = Conv2D_BN_Leaky(big.shape[1], base*32, (1, 1))(big)
 
-        up = UpSample(scale_factor=2, mode='bilinear')
-        all = medium + up(big)
-        all = small + up(all)
-        all = tiny + up(all)
+        # up = UpSample(scale_factor=2, mode='bilinear')
+        # all = medium + up(big)
+        # all = small + up(all)
+        # all = tiny + up(all)
+        all = tiny
 
         num_filters = base * 32
         all = Conv2D_BN_Leaky(all.shape[1], num_filters, (1, 1))(all)
@@ -155,9 +156,9 @@ class yolo_body(nn.Module):
         self.in_dim = in_dim
         self.base = 6
         self.CBL_tiny = Conv2D_BN_Leaky(in_dim[0], self.base * 32, (1, 1))
-        self.CBL_small = Conv2D_BN_Leaky(in_dim[1], self.base * 32, (1, 1))
-        self.CBL_medium = Conv2D_BN_Leaky(in_dim[2], self.base * 32, (1, 1))
-        self.CBL_big = Conv2D_BN_Leaky(in_dim[3], self.base * 32, (1, 1))
+        # self.CBL_small = Conv2D_BN_Leaky(in_dim[1], self.base * 32, (1, 1))
+        # self.CBL_medium = Conv2D_BN_Leaky(in_dim[2], self.base * 32, (1, 1))
+        # self.CBL_big = Conv2D_BN_Leaky(in_dim[3], self.base * 32, (1, 1))
         num_filters = self.base * 32
 
         self.all1 = Conv2D_BN_Leaky(self.base * 32, num_filters, (1, 1))
@@ -168,18 +169,19 @@ class yolo_body(nn.Module):
 
     def forward(self, yolo_layers):
         tiny = yolo_layers['tiny']
-        small = yolo_layers['small']
-        medium = yolo_layers['medium']
-        big = yolo_layers['big']
+        # small = yolo_layers['small']
+        # medium = yolo_layers['medium']
+        # big = yolo_layers['big']
         tiny = self.CBL_tiny(tiny)
-        small = self.CBL_small(small)
-        medium = self.CBL_medium(medium)
-        big = self.CBL_big(big)
+        # small = self.CBL_small(small)
+        # medium = self.CBL_medium(medium)
+        # big = self.CBL_big(big)
 
-        up = UpSample(scale_factor=2, mode='bilinear')
-        all = medium + up(big)
-        all = small + up(all)
-        all = tiny + up(all)
+        # up = UpSample(scale_factor=2, mode='bilinear')
+        # all = medium + up(big)
+        # all = small + up(all)
+        # all = tiny + up(all)
+        all = tiny
 
         all = self.all1(all)
         all = self.all2(all)
@@ -216,6 +218,7 @@ class Darknet(nn.Module):
         yolo_layers = {}
         output = {}
         for index, block in enumerate(self.blocks[1:]):
+            # print('index', index, 'block', block)
             if block['type'] == 'convolutional':
                 x = self.models[index](x)
                 output[index] = x
@@ -231,7 +234,8 @@ class Darknet(nn.Module):
                 name = block['name']
                 yolo_layers[name] = x
             elif block['type'] == 'yolo_body':
-                self.models[index] = yolo_body([yolo_layers['tiny'].shape[1], yolo_layers['small'].shape[1], yolo_layers['medium'].shape[1], yolo_layers['big'].shape[1]]).to(self.device)
+                # self.models[index] = yolo_body([yolo_layers['tiny'].shape[1], yolo_layers['small'].shape[1], yolo_layers['medium'].shape[1], yolo_layers['big'].shape[1]]).to(self.device)
+                self.models[index] = yolo_body([yolo_layers['tiny'].shape[1], ]).to(self.device)
                 x = self.models[index](yolo_layers)
 
             else:
